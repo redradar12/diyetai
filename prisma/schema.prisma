@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Diyetisyen tablosu
+model Diyetisyen {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  sifre       String
+  ad          String
+  soyad       String
+  telefon     String?
+  uzmanlik    String?
+  deneyim     Int?
+  olusturmaTarihi DateTime @default(now())
+  guncellemeTarihi DateTime @updatedAt
+
+  // Abonelik bilgileri
+  abonelik    Abonelik?
+  
+  // İlişkiler
+  danisanlar  Danisan[]
+  randevular  Randevu[]
+  menuler     Menu[]
+  icerikler   Icerik[]
+
+  @@map("diyetisyenler")
+}
+
+// Danışan tablosu
+model Danisan {
+  id               String   @id @default(cuid())
+  ad               String
+  soyad            String
+  email            String?
+  telefon          String?
+  yas              Int?
+  kilo             Float?
+  boy              Float?
+  hedefKilo        Float?
+  cinsiyet         String?
+  aktiviteSeviyesi String?
+  saglikDurumu     String?
+  hastaliklari     String?
+  alerjiler        String?
+  besinTercihleri  String?
+  notlar           String?
+  kayitTarihi      DateTime @default(now()) @map("olusturmaTarihi")
+  guncellemeTarihi DateTime @updatedAt
+
+  // İlişkiler
+  diyetisyenId String
+  diyetisyen   Diyetisyen @relation(fields: [diyetisyenId], references: [id], onDelete: Cascade)
+  randevular   Randevu[]
+  menuler      Menu[]
+
+  @@map("danisanlar")
+}
+
+// Menü tablosu
+model Menu {
+  id             String   @id @default(cuid())
+  baslik         String
+  icerik         String   // JSON formatında menü içeriği
+  menuTuru       String?  // Kilo verme, kilo alma, etc.
+  sure           String?  // 1 hafta, 1 ay, etc.
+  kaloriHedefi   Int?
+  ekNotlar       String?
+  olusturmaTarihi DateTime @default(now())
+
+  // İlişkiler
+  diyetisyenId String
+  diyetisyen   Diyetisyen @relation(fields: [diyetisyenId], references: [id], onDelete: Cascade)
+  danisanId    String?
+  danisan      Danisan?   @relation(fields: [danisanId], references: [id], onDelete: SetNull)
+
+  @@map("menuler")
+}
+
+// Randevu tablosu
+model Randevu {
+  id          String   @id @default(cuid())
+  baslik      String
+  aciklama    String?
+  tarih       DateTime
+  durum       String   @default("beklemede") // beklemede, tamamlandi, iptal
+  olusturmaTarihi DateTime @default(now())
+
+  // İlişkiler
+  diyetisyenId String
+  diyetisyen   Diyetisyen @relation(fields: [diyetisyenId], references: [id], onDelete: Cascade)
+  danisanId    String?
+  danisan      Danisan?   @relation(fields: [danisanId], references: [id], onDelete: SetNull)
+
+  @@map("randevular")
+}
+
+// İçerik tablosu (blog ve sosyal medya postları)
+model Icerik {
+  id          String   @id @default(cuid())
+  baslik      String
+  icerik      String
+  tur         String   // "blog", "sosyal-medya", "instagram", "facebook"
+  durum       String   @default("taslak") // taslak, yayinlandi
+  olusturmaTarihi DateTime @default(now())
+  guncellemeTarihi DateTime @updatedAt
+
+  // İlişkiler
+  diyetisyenId String
+  diyetisyen   Diyetisyen @relation(fields: [diyetisyenId], references: [id], onDelete: Cascade)
+
+  @@map("icerikler")
+}
+
+// Abonelik tablosu
+model Abonelik {
+  id          String   @id @default(cuid())
+  plan        String   // "ucretsiz", "temel", "premium"
+  baslangic   DateTime
+  bitis       DateTime?
+  aktif       Boolean  @default(true)
+  maksDanisan Int      @default(3) // Ücretsiz plan için 3 danışan
+  maksMenu    Int      @default(5) // Ücretsiz plan için 5 menü
+  olusturmaTarihi DateTime @default(now())
+
+  // İlişkiler
+  diyetisyenId String @unique
+  diyetisyen   Diyetisyen @relation(fields: [diyetisyenId], references: [id], onDelete: Cascade)
+
+  @@map("abonelikler")
+}
