@@ -4,6 +4,11 @@ import jwt from 'jsonwebtoken';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
 
+interface JwtPayload {
+  id: string;
+  email: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Token kontrolü
@@ -13,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token gerekli' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
     
     // Request body'yi al
     const body = await request.json();

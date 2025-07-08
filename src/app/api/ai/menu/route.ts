@@ -11,6 +11,11 @@ interface MenuRequest {
   ekNotlar?: string;
 }
 
+interface JwtPayload {
+  id: string;
+  email: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Token kontrolü
@@ -20,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token gerekli' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
     const diyetisyenId = decoded.id; // userId yerine id kullan
 
     console.log('Decoded token:', decoded);
@@ -169,7 +174,7 @@ Bu menü ${sure} süreyle uygulanacak şekilde hazırlanmıştır.
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('AI Menü oluşturma hatası:', error);
     return NextResponse.json({ 
       error: 'Menü oluşturulurken bir hata oluştu' 

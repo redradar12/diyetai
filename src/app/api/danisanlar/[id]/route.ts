@@ -4,6 +4,11 @@ import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
+interface JwtPayload {
+  id: string;
+  email: string;
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -16,7 +21,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Token gerekli' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
     const diyetisyenId = decoded.id;
 
     // Request body'yi al
@@ -100,7 +105,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Token gerekli' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
     const diyetisyenId = decoded.id;
 
     // Danışanın bu diyetisyene ait olup olmadığını kontrol et
@@ -148,7 +153,7 @@ export async function GET(
       return NextResponse.json({ error: 'Token gerekli' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
     const diyetisyenId = decoded.id;
 
     // Danışanı getir

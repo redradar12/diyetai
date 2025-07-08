@@ -4,6 +4,11 @@ import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
+interface JwtPayload {
+  id: string;
+  email: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Token kontrolü
@@ -13,7 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Token gerekli' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
     const diyetisyenId = decoded.id; // userId yerine id kullan
 
     // Diyetisyenin danışanlarını getir
@@ -47,10 +52,10 @@ export async function GET(request: NextRequest) {
       danisanlar: danisanlar
     });
 
-  } catch (error: any) {
-    console.error('Danışan listesi hatası:', error);
+  } catch (error) {
+    console.error('API Error:', error);
     return NextResponse.json({ 
-      error: 'Danışanlar yüklenirken bir hata oluştu' 
+      error: 'Sunucu hatası' 
     }, { status: 500 });
   }
 }
@@ -64,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token gerekli' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
     const diyetisyenId = decoded.id; // userId yerine id kullan
 
     // Request body'yi al
@@ -109,10 +114,10 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
-    console.error('Danışan ekleme hatası:', error);
+  } catch (error) {
+    console.error('API Error:', error);
     return NextResponse.json({ 
-      error: 'Danışan eklenirken bir hata oluştu' 
+      error: 'Sunucu hatası' 
     }, { status: 500 });
   }
 }
