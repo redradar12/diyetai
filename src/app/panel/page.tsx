@@ -75,10 +75,18 @@ export default function PanelPage() {
         gun: number;
         tarih: string;
         gunluk_toplam_kalori: string;
+        su_tüketimi?: string;
+        besin_degerleri?: {
+          protein?: string;
+          karbonhidrat?: string;
+          yag?: string;
+        };
         ogunler?: {
           kahvalti?: { kalori: string; yemekler: string[]; tarif: string };
           ogle?: { kalori: string; yemekler: string[]; tarif: string };
           aksam?: { kalori: string; yemekler: string[]; tarif: string };
+          ara_ogun_1?: { kalori: string; yemekler: string[]; tarif: string };
+          ara_ogun_2?: { kalori: string; yemekler: string[]; tarif: string };
         };
       }>;
     };
@@ -464,10 +472,18 @@ export default function PanelPage() {
             gun: number;
             tarih: string;
             gunluk_toplam_kalori: string;
+            su_tüketimi?: string;
+            besin_degerleri?: {
+              protein?: string;
+              karbonhidrat?: string;
+              yag?: string;
+            };
             ogunler?: {
               kahvalti?: { kalori: string; yemekler: string[]; tarif: string };
               ogle?: { kalori: string; yemekler: string[]; tarif: string };
               aksam?: { kalori: string; yemekler: string[]; tarif: string };
+              ara_ogun_1?: { kalori: string; yemekler: string[]; tarif: string };
+              ara_ogun_2?: { kalori: string; yemekler: string[]; tarif: string };
             };
           }) => `
             <div class="day">
@@ -1179,10 +1195,18 @@ export default function PanelPage() {
                           gun: number;
                           tarih: string;
                           gunluk_toplam_kalori: string;
+                          su_tüketimi?: string;
+                          besin_degerleri?: {
+                            protein?: string;
+                            karbonhidrat?: string;
+                            yag?: string;
+                          };
                           ogunler?: {
                             kahvalti?: { kalori: string; yemekler: string[]; tarif: string };
                             ogle?: { kalori: string; yemekler: string[]; tarif: string };
                             aksam?: { kalori: string; yemekler: string[]; tarif: string };
+                            ara_ogun_1?: { kalori: string; yemekler: string[]; tarif: string };
+                            ara_ogun_2?: { kalori: string; yemekler: string[]; tarif: string };
                           };
                         }, index: number) => (
                           <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
