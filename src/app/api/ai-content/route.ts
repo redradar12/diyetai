@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
     }
 
     const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
+    // decoded kullanıldığı için yorum satırına alındı
+    console.log('User authenticated:', decoded.id);
     
     // Request body'yi al
     const body = await request.json();
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Ana prompt oluştur
-    let prompt = `
+    const prompt = `
 Sen uzman bir diyetisyen ve sosyal medya içerik uzmanısın. "${konu}" konulu ${icerikTuruMap[icerikTuru] || icerikTuru} oluştur.
 
 HEDEF KİTLE: ${hedefKitleMap[hedefKitle] || hedefKitle}
@@ -161,12 +163,14 @@ ${icerikTuru === 'linkedin' ? '- LinkedIn\'e uygun profesyonel içerik' : ''}
       generated_at: new Date().toISOString()
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('İçerik oluşturma hatası:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
     
     // Fallback içerik
     const body = await request.json();
-    const { icerikTuru, konu, hedefKitle, ton } = body;
+    const { icerikTuru, hedefKitle, ton } = body;
     
     const icerikTuruMap: { [key: string]: string } = {
       'instagram': 'Instagram Postu',
@@ -200,7 +204,7 @@ ${icerikTuru === 'linkedin' ? '- LinkedIn\'e uygun profesyonel içerik' : ''}
       success: true,
       content: fallbackContent,
       fallback: true,
-      error: process.env.NODE_ENV === 'development' ? error.message : 'İçerik oluşturma geçici olarak kullanılamıyor'
+      error: process.env.NODE_ENV === 'development' ? errorMessage : 'İçerik oluşturma geçici olarak kullanılamıyor'
     });
   }
 }

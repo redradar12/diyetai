@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 
 // Randevu güncelle
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
@@ -62,8 +63,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // Randevu sil
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
     const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     
     if (!token) {

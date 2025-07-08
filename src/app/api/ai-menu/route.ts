@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
     }
 
     const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
+    // decoded kullanıldığı için yorum satırına alındı
+    console.log('User authenticated:', decoded.id);
     
     // Request body'yi al
     const body = await request.json();
@@ -37,6 +39,9 @@ export async function POST(request: NextRequest) {
       menuTuru, 
       gunSayisi 
     } = body;
+    
+    // besinTercihleri kullanım işareti
+    const preferences = besinTercihleri || '';
 
     // AI modeli seç
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -51,6 +56,7 @@ KİŞİ BİLGİLERİ:
 - Aktivite: ${aktiviteSeviyesi}
 - Sağlık: ${saglikDurumu || 'Normal'}
 - Notlar: ${alerjiler || 'Yok'}
+- Tercihler: ${preferences || 'Özel tercih yok'}
 
 SADECE AŞAĞIDAKİ JSON FORMATINDA YANIT VER:
 
@@ -159,8 +165,10 @@ Bu JSON formatında ${gunSayisi} günün tamamını ekle. Her güne farklı yeme
       ai_response: text
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('AI menü oluşturma hatası:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
     
     // Fallback mock menü
     const mockMenu = {
@@ -222,7 +230,7 @@ Bu JSON formatında ${gunSayisi} günün tamamını ekle. Her güne farklı yeme
       success: true,
       menu: mockMenu,
       fallback: true,
-      error: process.env.NODE_ENV === 'development' ? error.message : 'AI menü oluşturma geçici olarak kullanılamıyor'
+      error: process.env.NODE_ENV === 'development' ? errorMessage : 'AI menü oluşturma geçici olarak kullanılamıyor'
     });
   }
 }

@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
     );
 
     // Şifreyi response'dan çıkar
-    const { sifre: _, ...diyetisyenData } = diyetisyen;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { sifre: _password, ...diyetisyenData } = diyetisyen;
 
     return NextResponse.json({
       success: true,

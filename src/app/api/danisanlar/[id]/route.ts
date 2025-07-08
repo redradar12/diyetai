@@ -11,9 +11,11 @@ interface JwtPayload {
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
+    
     // Token kontrolü
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
@@ -85,8 +87,8 @@ export async function PUT(
       }
     });
 
-  } catch (error: any) {
-    console.error('Danışan güncelleme hatası:', error);
+  } catch (error: unknown) {
+    console.error('Danişan güncelleme hatası:', error);
     return NextResponse.json({ 
       error: 'Danışan güncellenirken bir hata oluştu' 
     }, { status: 500 });
@@ -95,9 +97,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
+    
     // Token kontrolü
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
@@ -133,8 +137,8 @@ export async function DELETE(
       message: 'Danışan başarıyla silindi' 
     }, { status: 200 });
 
-  } catch (error: any) {
-    console.error('Danışan silme hatası:', error);
+  } catch (error: unknown) {
+    console.error('Danişan silme hatası:', error);
     return NextResponse.json({ 
       error: 'Danışan silinirken bir hata oluştu' 
     }, { status: 500 });
@@ -143,9 +147,11 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
+    
     // Token kontrolü
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     
@@ -212,7 +218,7 @@ export async function GET(
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Danışan getirme hatası:', error);
     return NextResponse.json({ 
       error: 'Danışan bilgileri alınırken bir hata oluştu' 

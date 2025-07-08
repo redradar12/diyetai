@@ -30,19 +30,57 @@ interface Danisan {
   guncellemeTarihi: string;
 }
 
+interface MenuGunu {
+  gun: number;
+  tarih: string;
+  gunluk_toplam_kalori: string;
+  su_tüketimi?: string;
+  besin_degerleri?: {
+    protein?: string;
+    karbonhidrat?: string;
+    yag?: string;
+  };
+  ogunler?: {
+    kahvalti?: { kalori: string; yemekler: string[]; tarif: string };
+    ogle?: { kalori: string; yemekler: string[]; tarif: string };
+    aksam?: { kalori: string; yemekler: string[]; tarif: string };
+    ara_ogun_1?: { kalori: string; yemekler: string[]; tarif: string };
+    ara_ogun_2?: { kalori: string; yemekler: string[]; tarif: string };
+  };
+}
+
+interface RandevuDanisan {
+  id: string;
+  ad: string;
+  soyad: string;
+  email: string;
+  telefon?: string;
+}
+
+interface BackendDanisan {
+  id: string;
+  ad: string;
+  soyad: string;
+  email: string;
+  telefon: string;
+  yas?: number;
+  cinsiyet?: string;
+  boy?: number;
+  kilo?: number;
+  hedefKilo?: number;
+  saglikDurumu?: string;
+  hastaliklari?: string;
+  notlar?: string;
+  guncellemeTarihi: string;
+}
+
 interface Randevu {
   id: string;
   baslik: string;
   aciklama?: string;
   tarih: string;
   durum: string;
-  danisan?: {
-    id: string;
-    ad: string;
-    soyad: string;
-    email: string;
-    telefon?: string;
-  };
+  danisan?: RandevuDanisan;
   olusturmaTarihi: string;
 }
 
@@ -210,22 +248,7 @@ export default function PanelPage() {
       if (response.ok) {
         const data = await response.json();
         // Backend'den gelen veriyi frontend format'ına çevir
-        const formattedDanisanlar = data.danisanlar.map((danisan: {
-          id: string;
-          ad: string;
-          soyad: string;
-          email: string;
-          telefon: string;
-          yas?: number;
-          cinsiyet?: string;
-          boy?: number;
-          kilo?: number;
-          hedefKilo?: number;
-          saglikDurumu?: string;
-          hastaliklari?: string;
-          notlar?: string;
-          guncellemeTarihi: string;
-        }) => ({
+        const formattedDanisanlar = data.danisanlar.map((danisan: BackendDanisan) => ({
           ...danisan,
           tel: danisan.telefon, // Backend'de telefon, frontend'de tel
           guncellemeTarihi: danisan.guncellemeTarihi
@@ -468,24 +491,7 @@ export default function PanelPage() {
             <h1>${generatedMenu.menu?.baslik || 'AI Menü'}</h1>
             <p>${generatedMenu.menu?.toplam_kalori_hedefi || ''}</p>
           </div>
-          ${generatedMenu.menu?.gunler?.map((gun: {
-            gun: number;
-            tarih: string;
-            gunluk_toplam_kalori: string;
-            su_tüketimi?: string;
-            besin_degerleri?: {
-              protein?: string;
-              karbonhidrat?: string;
-              yag?: string;
-            };
-            ogunler?: {
-              kahvalti?: { kalori: string; yemekler: string[]; tarif: string };
-              ogle?: { kalori: string; yemekler: string[]; tarif: string };
-              aksam?: { kalori: string; yemekler: string[]; tarif: string };
-              ara_ogun_1?: { kalori: string; yemekler: string[]; tarif: string };
-              ara_ogun_2?: { kalori: string; yemekler: string[]; tarif: string };
-            };
-          }) => `
+          ${generatedMenu.menu?.gunler?.map((gun: MenuGunu) => `
             <div class="day">
               <h3>${gun.gun}. Gün (${new Date(gun.tarih).toLocaleDateString('tr-TR')}) - ${gun.gunluk_toplam_kalori} kalori</h3>
               ${gun.ogunler?.kahvalti ? `<div class="meal"><strong>Kahvaltı (${gun.ogunler.kahvalti.kalori} kcal):</strong><br>${gun.ogunler.kahvalti.yemekler?.join(', ')}<br><em>${gun.ogunler.kahvalti.tarif}</em></div>` : ''}
@@ -1191,24 +1197,7 @@ export default function PanelPage() {
                     {/* Menü Günleri */}
                     {generatedMenu.menu?.gunler && generatedMenu.menu.gunler.length > 0 ? (
                       <div className="space-y-3">
-                        {(showFullMenu ? generatedMenu.menu.gunler : generatedMenu.menu.gunler.slice(0, 3)).map((gun: {
-                          gun: number;
-                          tarih: string;
-                          gunluk_toplam_kalori: string;
-                          su_tüketimi?: string;
-                          besin_degerleri?: {
-                            protein?: string;
-                            karbonhidrat?: string;
-                            yag?: string;
-                          };
-                          ogunler?: {
-                            kahvalti?: { kalori: string; yemekler: string[]; tarif: string };
-                            ogle?: { kalori: string; yemekler: string[]; tarif: string };
-                            aksam?: { kalori: string; yemekler: string[]; tarif: string };
-                            ara_ogun_1?: { kalori: string; yemekler: string[]; tarif: string };
-                            ara_ogun_2?: { kalori: string; yemekler: string[]; tarif: string };
-                          };
-                        }, index: number) => (
+                        {(showFullMenu ? generatedMenu.menu.gunler : generatedMenu.menu.gunler.slice(0, 3)).map((gun: MenuGunu, index: number) => (
                           <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
                             <div className="flex items-center justify-between mb-3">
                               <span className="font-medium text-gray-800">

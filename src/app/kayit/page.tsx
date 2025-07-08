@@ -42,7 +42,7 @@ export default function KayitPage() {
               Hesap Oluşturun
             </h1>
             <p className="text-gray-600">
-              DiyetAI'ya ücretsiz katılın ve başlayın
+              DiyetAI&apos;ya ücretsiz katılın ve başlayın
             </p>
           </div>
 
