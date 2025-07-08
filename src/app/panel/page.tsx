@@ -63,7 +63,27 @@ export default function PanelPage() {
     ozelNotlar: ''
   });
   const [aiMenuLoading, setAiMenuLoading] = useState(false);
-  const [generatedMenu, setGeneratedMenu] = useState<any>(null);
+  const [generatedMenu, setGeneratedMenu] = useState<null | {
+    menu?: {
+      baslik?: string;
+      toplam_gun?: number;
+      toplam_kalori_hedefi?: string;
+      ham_metin?: string;
+      icerik?: string;
+      aciklama?: string;
+      gunler?: Array<{
+        gun: number;
+        tarih: string;
+        gunluk_toplam_kalori: string;
+        ogunler?: {
+          kahvalti?: { kalori: string; yemekler: string[]; tarif: string };
+          ogle?: { kalori: string; yemekler: string[]; tarif: string };
+          aksam?: { kalori: string; yemekler: string[]; tarif: string };
+        };
+      }>;
+    };
+    genel_oneriler?: string[];
+  }>(null);
   const [showFullMenu, setShowFullMenu] = useState(false);
   const [aiContentForm, setAiContentForm] = useState({
     icerikTuru: '',
@@ -74,7 +94,18 @@ export default function PanelPage() {
     ozelNotlar: ''
   });
   const [aiContentLoading, setAiContentLoading] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState<any>(null);
+  const [generatedContent, setGeneratedContent] = useState<null | {
+    icerik?: string;
+    hashtaglar?: string[];
+    ipuclari?: string[];
+    karakter_sayisi?: number;
+    kelime_sayisi?: number;
+    okuma_suresi?: string;
+    icerik_turu?: string;
+    icerik_turu_tr?: string;
+    hedef_kitle_tr?: string;
+    ton_tr?: string;
+  }>(null);
   const [randevular, setRandevular] = useState<Randevu[]>([]);
   const [showNewRandevuModal, setShowNewRandevuModal] = useState(false);
   const [showEditRandevuModal, setShowEditRandevuModal] = useState(false);
@@ -171,7 +202,22 @@ export default function PanelPage() {
       if (response.ok) {
         const data = await response.json();
         // Backend'den gelen veriyi frontend format'ına çevir
-        const formattedDanisanlar = data.danisanlar.map((danisan: any) => ({
+        const formattedDanisanlar = data.danisanlar.map((danisan: {
+          id: string;
+          ad: string;
+          soyad: string;
+          email: string;
+          telefon: string;
+          yas?: number;
+          cinsiyet?: string;
+          boy?: number;
+          kilo?: number;
+          hedefKilo?: number;
+          saglikDurumu?: string;
+          hastaliklari?: string;
+          notlar?: string;
+          guncellemeTarihi: string;
+        }) => ({
           ...danisan,
           tel: danisan.telefon, // Backend'de telefon, frontend'de tel
           guncellemeTarihi: danisan.guncellemeTarihi
@@ -414,7 +460,16 @@ export default function PanelPage() {
             <h1>${generatedMenu.menu?.baslik || 'AI Menü'}</h1>
             <p>${generatedMenu.menu?.toplam_kalori_hedefi || ''}</p>
           </div>
-          ${generatedMenu.menu?.gunler?.map((gun: any) => `
+          ${generatedMenu.menu?.gunler?.map((gun: {
+            gun: number;
+            tarih: string;
+            gunluk_toplam_kalori: string;
+            ogunler?: {
+              kahvalti?: { kalori: string; yemekler: string[]; tarif: string };
+              ogle?: { kalori: string; yemekler: string[]; tarif: string };
+              aksam?: { kalori: string; yemekler: string[]; tarif: string };
+            };
+          }) => `
             <div class="day">
               <h3>${gun.gun}. Gün (${new Date(gun.tarih).toLocaleDateString('tr-TR')}) - ${gun.gunluk_toplam_kalori} kalori</h3>
               ${gun.ogunler?.kahvalti ? `<div class="meal"><strong>Kahvaltı (${gun.ogunler.kahvalti.kalori} kcal):</strong><br>${gun.ogunler.kahvalti.yemekler?.join(', ')}<br><em>${gun.ogunler.kahvalti.tarif}</em></div>` : ''}
@@ -1120,7 +1175,16 @@ export default function PanelPage() {
                     {/* Menü Günleri */}
                     {generatedMenu.menu?.gunler && generatedMenu.menu.gunler.length > 0 ? (
                       <div className="space-y-3">
-                        {(showFullMenu ? generatedMenu.menu.gunler : generatedMenu.menu.gunler.slice(0, 3)).map((gun: any, index: number) => (
+                        {(showFullMenu ? generatedMenu.menu.gunler : generatedMenu.menu.gunler.slice(0, 3)).map((gun: {
+                          gun: number;
+                          tarih: string;
+                          gunluk_toplam_kalori: string;
+                          ogunler?: {
+                            kahvalti?: { kalori: string; yemekler: string[]; tarif: string };
+                            ogle?: { kalori: string; yemekler: string[]; tarif: string };
+                            aksam?: { kalori: string; yemekler: string[]; tarif: string };
+                          };
+                        }, index: number) => (
                           <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
                             <div className="flex items-center justify-between mb-3">
                               <span className="font-medium text-gray-800">
@@ -1421,7 +1485,7 @@ export default function PanelPage() {
                   <h3 className="text-lg font-semibold">Oluşturulan İçerik</h3>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => copyContentToClipboard(generatedContent.icerik)}
+                      onClick={() => copyContentToClipboard(generatedContent.icerik || '')}
                       className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm"
                     >
                       📋 Kopyala
@@ -1429,7 +1493,7 @@ export default function PanelPage() {
                     <button
                       onClick={() => {
                         const element = document.createElement('a');
-                        const file = new Blob([generatedContent.icerik], { type: 'text/plain' });
+                        const file = new Blob([generatedContent.icerik || ''], { type: 'text/plain' });
                         element.href = URL.createObjectURL(file);
                         element.download = `${generatedContent.icerik_turu}_${Date.now()}.txt`;
                         document.body.appendChild(element);
@@ -1501,13 +1565,13 @@ export default function PanelPage() {
                   <div className="border-t pt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div className="text-center">
                       <div className="font-medium text-gray-900">
-                        {generatedContent.icerik.length}
+                        {generatedContent.icerik?.length || 0}
                       </div>
                       <div className="text-gray-600">Karakter</div>
                     </div>
                     <div className="text-center">
                       <div className="font-medium text-gray-900">
-                        {generatedContent.icerik.split(' ').length}
+                        {generatedContent.icerik?.split(' ').length || 0}
                       </div>
                       <div className="text-gray-600">Kelime</div>
                     </div>

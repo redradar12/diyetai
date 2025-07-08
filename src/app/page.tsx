@@ -168,7 +168,7 @@ export default function Home() {
                 <h3 className="text-xl font-semibold text-gray-900">Sürekli Sorular</h3>
               </div>
               <p className="text-gray-600 mb-4">
-                WhatsApp'tan gelen benzer sorulara cevap vermek zor
+                WhatsApp&apos;tan gelen benzer sorulara cevap vermek zor
               </p>
               <div className="flex items-center text-green-600">
                 <Sparkles className="w-5 h-5 mr-2" />
@@ -285,7 +285,7 @@ export default function Home() {
                 href="/kayit"
                 className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors block text-center"
               >
-                Pro'ya Geçin
+                Pro&apos;ya Geçin
               </Link>
             </div>
           </div>
@@ -298,7 +298,7 @@ export default function Home() {
           <div className="text-center">
             <h3 className="text-2xl font-bold mb-4">DiyetAI</h3>
             <p className="text-gray-400 mb-6">
-              Türkiye'nin diyetisyenler için özel AI asistan platformu
+              Türkiye&apos;nin diyetisyenler için özel AI asistan platformu
             </p>
             <div className="flex justify-center space-x-6">
               <Link href="/gizlilik" className="text-gray-400 hover:text-white transition-colors">
