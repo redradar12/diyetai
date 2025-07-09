@@ -246,115 +246,25 @@ export default function PanelPage() {
   const fetchTumKullanicilar = async () => {
     try {
       console.log('Admin kullanıcıları yükleniyor...');
-      console.log('User email:', user?.email);
-      console.log('Token:', localStorage.getItem('token'));
       
-      // Development veya production URL'ini belirle
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://diyetai-tau.vercel.app' 
-        : 'http://localhost:3001';
-        
-      console.log('Base URL:', baseUrl);
+      // Geçici olarak admin API'ları olmadığı için boş array döndür
+      setTumKullanicilar([]);
+      console.log('Admin API geçici olarak devre dışı');
       
-      const response = await fetch(`${baseUrl}/api/admin/users?email=${encodeURIComponent(user?.email || '')}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      console.log('Response ok:', response.ok);
-      
-      if (response.ok) {
-        try {
-          const responseText = await response.text();
-          console.log('Response text:', responseText);
-          
-          if (responseText) {
-            const data = JSON.parse(responseText);
-            console.log('Response data:', data);
-            setTumKullanicilar(data.users || []);
-          } else {
-            console.log('Empty response received');
-            setTumKullanicilar([]);
-          }
-        } catch (jsonError) {
-          console.error('JSON parse error:', jsonError);
-          alert('JSON parse hatası: ' + (jsonError as Error).message);
-        }
-      } else {
-        try {
-          const errorText = await response.text();
-          console.error('Error response text:', errorText);
-          
-          if (errorText) {
-            const errorData = JSON.parse(errorText);
-            console.error('API Error:', errorData);
-            alert(`Hata: ${errorData.error || 'Bilinmeyen hata'}`);
-          } else {
-            alert(`HTTP Hata: ${response.status}`);
-          }
-        } catch (jsonError) {
-          console.error('Error JSON parse error:', jsonError);
-          alert(`HTTP Hata: ${response.status} - JSON parse hatası`);
-        }
-      }
     } catch (error) {
-      console.error('Kullanıcılar yüklenirken hata:', error);
-      alert('Kullanıcılar yüklenirken hata oluştu!');
+      console.error('Kullanıcı listeleme hatası:', error);
+      setTumKullanicilar([]);
     }
   };
 
   // Kullanıcı planını yükselt
-  const upgradePlan = async (userId: string, newPlan: string) => {
-    try {
-      const response = await fetch(`/api/admin/users/${userId}/upgrade?email=${encodeURIComponent(user?.email || '')}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ plan: newPlan })
-      });
-      
-      if (response.ok) {
-        alert('Kullanıcı planı başarıyla yükseltildi!');
-        fetchTumKullanicilar();
-      } else {
-        alert('Plan yükseltme sırasında hata oluştu!');
-      }
-    } catch (error) {
-      console.error('Plan yükseltme hatası:', error);
-      alert('Plan yükseltme sırasında hata oluştu!');
-    }
+  const upgradePlan = async () => {
+    alert('Admin API geçici olarak devre dışı');
   };
 
   // Kullanıcıyı sil
-  const deleteUser = async (userId: string) => {
-    if (confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) {
-      try {
-        const response = await fetch(`/api/admin/users/${userId}?email=${encodeURIComponent(user?.email || '')}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
-        if (response.ok) {
-          alert('Kullanıcı başarıyla silindi!');
-          fetchTumKullanicilar();
-        } else {
-          alert('Kullanıcı silme sırasında hata oluştu!');
-        }
-      } catch (error) {
-        console.error('Kullanıcı silme hatası:', error);
-        alert('Kullanıcı silme sırasında hata oluştu!');
-      }
-    }
+  const deleteUser = async () => {
+    alert('Admin API geçici olarak devre dışı');
   };
 
   // Randevu alarm kontrolü
@@ -2458,14 +2368,14 @@ export default function PanelPage() {
                                 {kullanici.isAdmin !== true && (
                                   <>
                                     <button
-                                      onClick={() => upgradePlan(kullanici.id, 'premium')}
+                                      onClick={() => upgradePlan()}
                                       className="p-1 text-green-600 hover:text-green-800 transition-colors"
                                       title="Premium&apos;a Yükselt"
                                     >
                                       <PlusCircle className="h-4 w-4" />
                                     </button>
                                     <button
-                                      onClick={() => deleteUser(kullanici.id)}
+                                      onClick={() => deleteUser()}
                                       className="p-1 text-red-600 hover:text-red-800 transition-colors"
                                       title="Kullanıcıyı Sil"
                                     >
@@ -2552,7 +2462,7 @@ export default function PanelPage() {
               {selectedUser.isAdmin !== true && (
                 <button
                   onClick={() => {
-                    upgradePlan(selectedUser.id, 'premium');
+                    upgradePlan();
                     setShowUserDetailModal(false);
                   }}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
