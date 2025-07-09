@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { User, Calendar, Users, FileText, PlusCircle, Edit3, Eye, LogOut, Bell, Filter, Clock, AlertCircle } from 'lucide-react';
+import { User, Calendar, Users, FileText, PlusCircle, MinusCircle, Edit3, Eye, LogOut, Bell, Filter, Clock, AlertCircle } from 'lucide-react';
 
 interface User {
   id: string;
@@ -318,7 +318,8 @@ export default function PanelPage() {
       const data = await response.json();
       
       if (data.success) {
-        alert('Kullanıcı planı başarıyla güncellendi!');
+        const planText = newPlan === 'premium' ? 'Premium plana yükseltildi' : 'Ücretsiz plana düşürüldü';
+        alert(`Kullanıcı planı başarıyla güncellendi: ${planText}!`);
         fetchTumKullanicilar(); // Listeyi yenile
       } else {
         alert('Plan güncellenirken hata oluştu: ' + data.error);
@@ -2486,13 +2487,23 @@ export default function PanelPage() {
                                 </button>
                                 {kullanici.isAdmin !== true && (
                                   <>
-                                    <button
-                                      onClick={() => upgradePlan(kullanici.id, 'premium')}
-                                      className="p-1 text-green-600 hover:text-green-800 transition-colors"
-                                      title="Premium&apos;a Yükselt"
-                                    >
-                                      <PlusCircle className="h-4 w-4" />
-                                    </button>
+                                    {kullanici.abonelik?.plan === 'premium' ? (
+                                      <button
+                                        onClick={() => upgradePlan(kullanici.id, 'ucretsiz')}
+                                        className="p-1 text-orange-600 hover:text-orange-800 transition-colors"
+                                        title="Ücretsiz Plana Düşür"
+                                      >
+                                        <MinusCircle className="h-4 w-4" />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => upgradePlan(kullanici.id, 'premium')}
+                                        className="p-1 text-green-600 hover:text-green-800 transition-colors"
+                                        title="Premium'a Yükselt"
+                                      >
+                                        <PlusCircle className="h-4 w-4" />
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() => deleteUser(kullanici.id)}
                                       className="p-1 text-red-600 hover:text-red-800 transition-colors"
