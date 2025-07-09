@@ -74,7 +74,7 @@ UZUNLUK: ${uzunluk || 'Optimal uzunluk'}
 ÖZEL NOTLAR: ${ozelNotlar || 'Yok'}
 DİYETİSYEN: ${diyetisyenAdi}
 
-Standart JSON formatında yanıt ver:
+ÖNEMLİ: Sadece JSON formatında yanıt ver, başka açıklama ekleme:
 
 {
   "icerik": "Ana içerik metni burada olacak",
@@ -101,6 +101,7 @@ Standart JSON formatında yanıt ver:
 - Hashtag'ları konu ile ilgili seç
 - Eylem çağrısı ekle
 - Bilimsel doğruluğu koru
+- JSON formatını bozma, başka metin ekleme
 
 ${icerikTuru === 'instagram' ? '- İnstagram\'a uygun format (maksimum 2200 karakter)' : ''}
 ${icerikTuru === 'twitter' ? '- Twitter\'a uygun format (maksimum 280 karakter)' : ''}
@@ -129,7 +130,10 @@ ${icerikTuru === 'linkedin' ? '- LinkedIn\'e uygun profesyonel içerik' : ''}
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
+      let text = response.text();
+      
+      // JSON formatındaki ```json ve ``` wrapper'larını temizle
+      text = text.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
       
       // JSON parse dene
       try {
