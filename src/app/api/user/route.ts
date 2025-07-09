@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         telefon: true,
         uzmanlik: true,
         deneyim: true,
+        isAdmin: true,
         abonelik: true,
         _count: {
           select: {
@@ -40,9 +41,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Kullanıcı bulunamadı' }, { status: 404 });
     }
 
+    // Frontend formatına çevir
+    const formattedUser = {
+      ...user,
+      tel: user.telefon
+    };
+
     return NextResponse.json({
       success: true,
-      user: user,
+      user: formattedUser,
     });
   } catch (error) {
     console.error('Kullanıcı bilgileri alınırken hata:', error);

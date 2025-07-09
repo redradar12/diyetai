@@ -11,6 +11,7 @@ interface User {
   tel?: string;
   uzmanlik?: string;
   deneyim?: number;
+  isAdmin?: boolean;
 }
 
 interface PlanBilgisi {
@@ -225,12 +226,136 @@ export default function PanelPage() {
     notlar: ''
   });
 
+  // Admin özellikleri için state'ler
+  const [tumKullanicilar, setTumKullanicilar] = useState<User[]>([]);
+  const [showUserManagement, setShowUserManagement] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+
   useEffect(() => {
     fetchUserData();
     fetchPlanBilgisi();
     fetchDanisanlar();
     fetchRandevular();
   }, []);
+
+  // Admin kontrolü
+  const isAdmin = user?.isAdmin === true;
+
+  // Admin için tüm kullanıcıları getir
+  const fetchTumKullanicilar = async () => {
+    try {
+      console.log('Admin kullanıcıları yükleniyor...');
+      console.log('User email:', user?.email);
+      console.log('Token:', localStorage.getItem('token'));
+      
+      // Development veya production URL'ini belirle
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://diyetai-tau.vercel.app' 
+        : 'http://localhost:3001';
+        
+      console.log('Base URL:', baseUrl);
+      
+      const response = await fetch(`${baseUrl}/api/admin/users?email=${encodeURIComponent(user?.email || '')}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      console.log('Response ok:', response.ok);
+      
+      if (response.ok) {
+        try {
+          const responseText = await response.text();
+          console.log('Response text:', responseText);
+          
+          if (responseText) {
+            const data = JSON.parse(responseText);
+            console.log('Response data:', data);
+            setTumKullanicilar(data.users || []);
+          } else {
+            console.log('Empty response received');
+            setTumKullanicilar([]);
+          }
+        } catch (jsonError) {
+          console.error('JSON parse error:', jsonError);
+          alert('JSON parse hatası: ' + (jsonError as Error).message);
+        }
+      } else {
+        try {
+          const errorText = await response.text();
+          console.error('Error response text:', errorText);
+          
+          if (errorText) {
+            const errorData = JSON.parse(errorText);
+            console.error('API Error:', errorData);
+            alert(`Hata: ${errorData.error || 'Bilinmeyen hata'}`);
+          } else {
+            alert(`HTTP Hata: ${response.status}`);
+          }
+        } catch (jsonError) {
+          console.error('Error JSON parse error:', jsonError);
+          alert(`HTTP Hata: ${response.status} - JSON parse hatası`);
+        }
+      }
+    } catch (error) {
+      console.error('Kullanıcılar yüklenirken hata:', error);
+      alert('Kullanıcılar yüklenirken hata oluştu!');
+    }
+  };
+
+  // Kullanıcı planını yükselt
+  const upgradePlan = async (userId: string, newPlan: string) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/upgrade?email=${encodeURIComponent(user?.email || '')}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ plan: newPlan })
+      });
+      
+      if (response.ok) {
+        alert('Kullanıcı planı başarıyla yükseltildi!');
+        fetchTumKullanicilar();
+      } else {
+        alert('Plan yükseltme sırasında hata oluştu!');
+      }
+    } catch (error) {
+      console.error('Plan yükseltme hatası:', error);
+      alert('Plan yükseltme sırasında hata oluştu!');
+    }
+  };
+
+  // Kullanıcıyı sil
+  const deleteUser = async (userId: string) => {
+    if (confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) {
+      try {
+        const response = await fetch(`/api/admin/users/${userId}?email=${encodeURIComponent(user?.email || '')}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (response.ok) {
+          alert('Kullanıcı başarıyla silindi!');
+          fetchTumKullanicilar();
+        } else {
+          alert('Kullanıcı silme sırasında hata oluştu!');
+        }
+      } catch (error) {
+        console.error('Kullanıcı silme hatası:', error);
+        alert('Kullanıcı silme sırasında hata oluştu!');
+      }
+    }
+  };
 
   // Randevu alarm kontrolü
   const checkRandevuAlarms = useCallback(() => {
@@ -1000,11 +1125,32 @@ export default function PanelPage() {
               <Calendar className="h-4 w-4" />
               Randevular
               {Object.keys(randevuAlarms).length > 0 && (
-                <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 ml-2">
                   {Object.keys(randevuAlarms).length}
                 </span>
               )}
             </button>
+            
+            {/* Admin sekmesi - sadece admin kullanıcılar için */}
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setActiveTab('admin');
+                  if (!showUserManagement) {
+                    fetchTumKullanicilar();
+                    setShowUserManagement(true);
+                  }
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  activeTab === 'admin'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <User className="h-4 w-4" />
+                Admin Panel
+              </button>
+            )}
           </nav>
         </div>
 
@@ -2240,7 +2386,184 @@ export default function PanelPage() {
             </div>
           </div>
         )}
+
+        {/* Admin Panel Tab */}
+        {activeTab === 'admin' && isAdmin && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Admin Panel - Kullanıcı Yönetimi</h2>
+              <button
+                onClick={fetchTumKullanicilar}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Yenile
+              </button>
+            </div>
+
+            {/* Kullanıcı Listesi */}
+            <div className="bg-white rounded-lg shadow-md">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold">Tüm Kullanıcılar</h3>
+              </div>
+              <div className="p-6">
+                {tumKullanicilar.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">Henüz kullanıcı bulunmuyor.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-2 px-4">Ad Soyad</th>
+                          <th className="text-left py-2 px-4">Email</th>
+                          <th className="text-left py-2 px-4">Telefon</th>
+                          <th className="text-left py-2 px-4">Rol</th>
+                          <th className="text-left py-2 px-4">Kayıt Tarihi</th>
+                          <th className="text-left py-2 px-4">İşlemler</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tumKullanicilar.map((kullanici) => (
+                          <tr key={kullanici.id} className="border-b border-gray-100">
+                            <td className="py-3 px-4">
+                              <div className="font-medium text-gray-900">
+                                {kullanici.ad} {kullanici.soyad}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-gray-600">{kullanici.email}</td>
+                            <td className="py-3 px-4 text-gray-600">{kullanici.tel || 'Belirtilmemiş'}</td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                kullanici.isAdmin === true 
+                                  ? 'bg-red-100 text-red-800' 
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {kullanici.isAdmin === true ? 'Admin' : 'Diyetisyen'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-gray-600">
+                              {new Date().toLocaleDateString('tr-TR')}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedUser(kullanici);
+                                    setShowUserDetailModal(true);
+                                  }}
+                                  className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
+                                  title="Detayları Görüntüle"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                {kullanici.isAdmin !== true && (
+                                  <>
+                                    <button
+                                      onClick={() => upgradePlan(kullanici.id, 'premium')}
+                                      className="p-1 text-green-600 hover:text-green-800 transition-colors"
+                                      title="Premium'a Yükselt"
+                                    >
+                                      <PlusCircle className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => deleteUser(kullanici.id)}
+                                      className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                                      title="Kullanıcıyı Sil"
+                                    >
+                                      <Edit3 className="h-4 w-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* İstatistikler */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-semibold mb-2">Toplam Kullanıcı</h3>
+                <p className="text-2xl font-bold text-blue-600">{tumKullanicilar.length}</p>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-semibold mb-2">Admin Kullanıcılar</h3>
+                <p className="text-2xl font-bold text-red-600">
+                  {tumKullanicilar.filter(u => u.isAdmin === true).length}
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-semibold mb-2">Diyetisyen Kullanıcılar</h3>
+                <p className="text-2xl font-bold text-green-600">
+                  {tumKullanicilar.filter(u => u.isAdmin !== true).length}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Kullanıcı Detay Modal */}
+      {showUserDetailModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Kullanıcı Detayları</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Ad Soyad</label>
+                <p className="text-gray-900">{selectedUser.ad} {selectedUser.soyad}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <p className="text-gray-900">{selectedUser.email}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Telefon</label>
+                <p className="text-gray-900">{selectedUser.tel || 'Belirtilmemiş'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Rol</label>
+                <p className="text-gray-900">{selectedUser.isAdmin === true ? 'Admin' : 'Diyetisyen'}</p>
+              </div>
+              {selectedUser.uzmanlik && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Uzmanlık</label>
+                  <p className="text-gray-900">{selectedUser.uzmanlik}</p>
+                </div>
+              )}
+              {selectedUser.deneyim && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Deneyim</label>
+                  <p className="text-gray-900">{selectedUser.deneyim} yıl</p>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-4 pt-4">
+              <button
+                onClick={() => setShowUserDetailModal(false)}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Kapat
+              </button>
+              {selectedUser.isAdmin !== true && (
+                <button
+                  onClick={() => {
+                    upgradePlan(selectedUser.id, 'premium');
+                    setShowUserDetailModal(false);
+                  }}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                >
+                  Premium'a Yükselt
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* New Danışan Modal */}
       {showNewDanisanModal && (

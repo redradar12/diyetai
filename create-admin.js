@@ -27,7 +27,8 @@ async function createAdmin() {
         email: 'admin@diyetai.com',
         sifre: hashedPassword,
         uzmanlik: 'Admin',
-        deneyim: 10
+        deneyim: 10,
+        isAdmin: true
       }
     });
     

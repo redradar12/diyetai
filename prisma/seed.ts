@@ -7,32 +7,6 @@ async function main() {
   // Test diyetisyeni şifresi
   const hashedPassword = await bcrypt.hash('123456', 12);
 
-  // Admin kullanıcısı oluştur
-  const adminUser = await prisma.diyetisyen.upsert({
-    where: { email: 'admin@diyetai.com' },
-    update: {},
-    create: {
-      email: 'admin@diyetai.com',
-      sifre: hashedPassword,
-      ad: 'Admin',
-      soyad: 'DiyetAI',
-      telefon: '0555 000 00 00',
-      uzmanlik: 'Sistem Yöneticisi',
-      deneyim: 10,
-      isAdmin: true,
-      abonelik: {
-        create: {
-          plan: 'premium',
-          baslangic: new Date(),
-          bitis: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 yıl sonra
-          aktif: true,
-          maksDanisan: 999,
-          maksMenu: 999
-        }
-      }
-    }
-  });
-
   // Test diyetisyeni oluştur
   const testDiyetisyen = await prisma.diyetisyen.upsert({
     where: { email: 'test@diyetai.com' },
