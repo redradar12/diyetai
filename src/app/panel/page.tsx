@@ -967,7 +967,7 @@ export default function PanelPage() {
                   </div>
                   {planBilgisi.plan === 'ucretsiz' && (
                     <button className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium text-sm hover:bg-gray-100 transition-colors">
-                      Premium'a Geç
+                      Premium&apos;a Geç
                     </button>
                   )}
                 </div>

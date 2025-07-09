@@ -164,3 +164,6 @@ NEXTAUTH_URL="https://diyetai.vercel.app"
 - [ ] JWT token geçerli
 - [ ] User API token ile çalışıyor
 - [ ] Panel sayfası authentication geçiyor
+- [ ] Plan kontrolü sistemi çalışıyor (ücretsiz: 5 AI menü, 3 danışan)
+- [ ] AI içerik üreticisi sadece premium'da erişilebilir
+- [ ] Danışan ve AI menü limit kontrolü aktif

@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
     await varsayilanAbonelikOlustur(newUser.id);
 
     // Şifreyi response'dan çıkar
-    const { sifre: _, ...userWithoutPassword } = newUser;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { sifre: password, ...userWithoutPassword } = newUser;
 
     return NextResponse.json({
       success: true,
