@@ -82,3 +82,51 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({ error: 'Sunucu hatası' }, { status: 500 });
   }
 }
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id } = params;
+    
+    // Authorization header'ından token al
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Token gerekli' }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    
+    if (!token) {
+      return NextResponse.json({ error: 'Geçersiz token' }, { status: 401 });
+    }
+
+    // Token'dan kullanıcı bilgilerini al
+    const userEmail = request.nextUrl.searchParams.get('email');
+    
+    if (!userEmail) {
+      return NextResponse.json({ error: 'Email gerekli' }, { status: 400 });
+    }
+
+    // Kullanıcının admin olup olmadığını kontrol et
+    const currentUser = await prisma.diyetisyen.findUnique({
+      where: { email: userEmail }
+    });
+
+    if (!currentUser || !currentUser.isAdmin) {
+      return NextResponse.json({ error: 'Yetki gerekli' }, { status: 403 });
+    }
+
+    // Kullanıcıyı bul
+    const targetUser = await prisma.diyetisyen.findUnique({
+      where: { id: id }
+    });
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'Kullanıcı bulunamadı' }, { status: 404 });
+    }
+
+    return NextResponse.json({ user: targetUser });
+  } catch (error) {
+    console.error('Kullanıcı getirme hatası:', error);
+    return NextResponse.json({ error: 'Sunucu hatası' }, { status: 500 });
+  }
+}
