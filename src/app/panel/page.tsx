@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { User, Calendar, Users, FileText, PlusCircle, Edit3, Eye, LogOut } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { User, Calendar, Users, FileText, PlusCircle, Edit3, Eye, LogOut, Bell, Filter, Clock, AlertCircle } from 'lucide-react';
 
 interface User {
   id: string;
@@ -178,6 +178,9 @@ export default function PanelPage() {
   const [showNewRandevuModal, setShowNewRandevuModal] = useState(false);
   const [showEditRandevuModal, setShowEditRandevuModal] = useState(false);
   const [selectedRandevu, setSelectedRandevu] = useState<Randevu | null>(null);
+  const [randevuFilter, setRandevuFilter] = useState<'hepsi' | 'bugun' | 'bu_hafta' | 'yaklaşan'>('hepsi');
+  const [randevuAlarms, setRandevuAlarms] = useState<{[key: string]: boolean}>({});
+  const [showNotifications, setShowNotifications] = useState(false);
   const [newRandevu, setNewRandevu] = useState({
     baslik: '',
     aciklama: '',
@@ -228,6 +231,73 @@ export default function PanelPage() {
     fetchDanisanlar();
     fetchRandevular();
   }, []);
+
+  // Randevu alarm kontrolü
+  const checkRandevuAlarms = useCallback(() => {
+    const now = new Date();
+    const newAlarms: {[key: string]: boolean} = {};
+    
+    randevular.forEach(randevu => {
+      const randevuTarih = new Date(randevu.tarih);
+      const timeDiff = randevuTarih.getTime() - now.getTime();
+      const minutesDiff = Math.floor(timeDiff / (1000 * 60));
+      
+      // 30 dakika kala alarm
+      if (minutesDiff > 0 && minutesDiff <= 30 && randevu.durum === 'onaylandi') {
+        newAlarms[randevu.id] = true;
+      }
+    });
+    
+    setRandevuAlarms(newAlarms);
+  }, [randevular]);
+
+  // Randevular değiştiğinde alarm kontrolü yap
+  useEffect(() => {
+    checkRandevuAlarms();
+    // Her 5 dakikada bir kontrol et
+    const alarmInterval = setInterval(checkRandevuAlarms, 5 * 60 * 1000);
+    return () => clearInterval(alarmInterval);
+  }, [checkRandevuAlarms]);
+
+  // Randevu filtreleme
+  const getFilteredRandevular = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+    const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+    
+    switch (randevuFilter) {
+      case 'bugun':
+        return randevular.filter(r => {
+          const randevuDate = new Date(r.tarih);
+          return randevuDate >= today && randevuDate < tomorrow;
+        });
+      case 'bu_hafta':
+        return randevular.filter(r => {
+          const randevuDate = new Date(r.tarih);
+          return randevuDate >= weekStart && randevuDate <= weekEnd;
+        });
+      case 'yaklaşan':
+        return randevular.filter(r => {
+          const randevuDate = new Date(r.tarih);
+          return randevuDate >= now;
+        }).sort((a, b) => new Date(a.tarih).getTime() - new Date(b.tarih).getTime());
+      default:
+        return randevular;
+    }
+  };
+
+  // Yaklaşan randevular (bildirim için)
+  const getYakasanRandevular = () => {
+    const now = new Date();
+    const nextHour = new Date(now.getTime() + 60 * 60 * 1000);
+    
+    return randevular.filter(r => {
+      const randevuDate = new Date(r.tarih);
+      return randevuDate >= now && randevuDate <= nextHour && r.durum === 'onaylandi';
+    });
+  };
 
   const fetchUserData = async () => {
     try {
@@ -843,13 +913,30 @@ export default function PanelPage() {
                 Hoş geldiniz, {user?.ad} {user?.soyad}
               </p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              Çıkış Yap
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Randevu Bildirimleri */}
+              {Object.keys(randevuAlarms).length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={() => setActiveTab('randevular')}
+                    className="relative p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                    title="Yaklaşan randevular var!"
+                  >
+                    <Bell className="h-5 w-5" />
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {Object.keys(randevuAlarms).length}
+                    </span>
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                Çıkış Yap
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -912,6 +999,11 @@ export default function PanelPage() {
             >
               <Calendar className="h-4 w-4" />
               Randevular
+              {Object.keys(randevuAlarms).length > 0 && (
+                <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {Object.keys(randevuAlarms).length}
+                </span>
+              )}
             </button>
           </nav>
         </div>
@@ -1030,21 +1122,109 @@ export default function PanelPage() {
               </div>
             </div>
 
-            {/* Recent Activity */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Son Eklenen Danışanlar</h3>
-              <div className="space-y-3">
-                {danisanlar.slice(0, 5).map((danisan) => (
-                  <div key={danisan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">{danisan.ad} {danisan.soyad}</p>
-                      <p className="text-sm text-gray-600">{danisan.email}</p>
+            {/* Yaklaşan Randevular ve Son Eklenen Danışanlar */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Yaklaşan Randevular */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Yaklaşan Randevular</h3>
+                  <button
+                    onClick={() => setActiveTab('randevular')}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Tümünü Gör
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {randevular
+                    .filter(r => new Date(r.tarih) >= new Date())
+                    .sort((a, b) => new Date(a.tarih).getTime() - new Date(b.tarih).getTime())
+                    .slice(0, 5)
+                    .map((randevu) => {
+                      const now = new Date();
+                      const randevuDate = new Date(randevu.tarih);
+                      const timeDiff = randevuDate.getTime() - now.getTime();
+                      const minutesDiff = Math.floor(timeDiff / (1000 * 60));
+                      const isYaklasan = minutesDiff > 0 && minutesDiff <= 30;
+                      
+                      return (
+                        <div 
+                          key={randevu.id} 
+                          className={`flex items-center justify-between p-3 rounded-lg border ${
+                            isYaklasan ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isYaklasan && (
+                              <div className="p-1 bg-yellow-100 rounded-full">
+                                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-medium text-sm">{randevu.baslik}</p>
+                              <p className="text-xs text-gray-600">
+                                {randevu.danisan ? `${randevu.danisan.ad} ${randevu.danisan.soyad}` : 'Genel'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-900">
+                              {new Date(randevu.tarih).toLocaleDateString('tr-TR')}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(randevu.tarih).toLocaleTimeString('tr-TR', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                            {isYaklasan && (
+                              <p className="text-xs text-yellow-600 font-medium">
+                                {minutesDiff} dakika kala
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {randevular.filter(r => new Date(r.tarih) >= new Date()).length === 0 && (
+                    <div className="text-center py-4 text-gray-500">
+                      <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p>Yaklaşan randevu bulunmuyor.</p>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {new Date(danisan.guncellemeTarihi).toLocaleDateString('tr-TR')}
+                  )}
+                </div>
+              </div>
+
+              {/* Son Eklenen Danışanlar */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Son Eklenen Danışanlar</h3>
+                  <button
+                    onClick={() => setActiveTab('danisanlar')}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Tümünü Gör
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {danisanlar.slice(0, 5).map((danisan) => (
+                    <div key={danisan.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium">{danisan.ad} {danisan.soyad}</p>
+                        <p className="text-sm text-gray-600">{danisan.email}</p>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {new Date(danisan.guncellemeTarihi).toLocaleDateString('tr-TR')}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                  {danisanlar.length === 0 && (
+                    <div className="text-center py-4 text-gray-500">
+                      <Users className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p>Henüz danışan bulunmuyor.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1737,9 +1917,43 @@ export default function PanelPage() {
 
         {activeTab === 'randevular' && (
           <div className="space-y-6">
-            {/* Header */}
+            {/* Header ve Bildirimler */}
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Randevular</h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-semibold">Randevular</h2>
+                {Object.keys(randevuAlarms).length > 0 && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowNotifications(!showNotifications)}
+                      className="relative p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                      <Bell className="h-5 w-5" />
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {Object.keys(randevuAlarms).length}
+                      </span>
+                    </button>
+                    {showNotifications && (
+                      <div className="absolute top-12 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-4 w-80 z-50">
+                        <h4 className="font-semibold text-gray-900 mb-3">Yaklaşan Randevular</h4>
+                        {getYakasanRandevular().map((randevu) => (
+                          <div key={randevu.id} className="flex items-center gap-3 p-2 bg-yellow-50 rounded-lg mb-2">
+                            <AlertCircle className="h-4 w-4 text-yellow-600" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">{randevu.baslik}</p>
+                              <p className="text-xs text-gray-600">
+                                {new Date(randevu.tarih).toLocaleTimeString('tr-TR', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => setShowNewRandevuModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -1749,15 +1963,77 @@ export default function PanelPage() {
               </button>
             </div>
 
+            {/* Filtreler */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">Filtrele:</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setRandevuFilter('hepsi')}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      randevuFilter === 'hepsi'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Hepsi ({randevular.length})
+                  </button>
+                  <button
+                    onClick={() => setRandevuFilter('bugun')}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      randevuFilter === 'bugun'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Bugün ({randevular.filter(r => {
+                      const today = new Date().toDateString();
+                      const randevuDate = new Date(r.tarih).toDateString();
+                      return today === randevuDate;
+                    }).length})
+                  </button>
+                  <button
+                    onClick={() => setRandevuFilter('bu_hafta')}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      randevuFilter === 'bu_hafta'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Bu Hafta ({randevular.filter(r => {
+                      const today = new Date();
+                      const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+                      const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+                      const randevuDate = new Date(r.tarih);
+                      return randevuDate >= weekStart && randevuDate <= weekEnd;
+                    }).length})
+                  </button>
+                  <button
+                    onClick={() => setRandevuFilter('yaklaşan')}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      randevuFilter === 'yaklaşan'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Yaklaşan ({randevular.filter(r => new Date(r.tarih) >= new Date()).length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Randevu Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex items-center">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Calendar className="h-5 w-5 text-green-600" />
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-600">Toplam Randevu</p>
+                    <p className="text-sm font-medium text-gray-600">Toplam</p>
                     <p className="text-lg font-bold text-gray-900">{randevular.length}</p>
                   </div>
                 </div>
@@ -1765,7 +2041,7 @@ export default function PanelPage() {
               <div className="bg-white rounded-lg shadow p-4">
                 <div className="flex items-center">
                   <div className="p-2 bg-yellow-100 rounded-lg">
-                    <Calendar className="h-5 w-5 text-yellow-600" />
+                    <Clock className="h-5 w-5 text-yellow-600" />
                   </div>
                   <div className="ml-3">
                     <p className="text-sm font-medium text-gray-600">Beklemede</p>
@@ -1811,6 +2087,19 @@ export default function PanelPage() {
                   </div>
                 </div>
               </div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <Bell className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-600">Alarmlar</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {Object.keys(randevuAlarms).length}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Randevu Tablosu */}
@@ -1836,77 +2125,113 @@ export default function PanelPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {randevular.length > 0 ? (
-                    randevular.map((randevu) => (
-                      <tr key={randevu.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {randevu.baslik}
+                  {getFilteredRandevular().length > 0 ? (
+                    getFilteredRandevular().map((randevu) => {
+                      const now = new Date();
+                      const randevuDate = new Date(randevu.tarih);
+                      const timeDiff = randevuDate.getTime() - now.getTime();
+                      const minutesDiff = Math.floor(timeDiff / (1000 * 60));
+                      const isYaklasan = minutesDiff > 0 && minutesDiff <= 30;
+                      const isGecmis = randevuDate < now;
+                      
+                      return (
+                        <tr key={randevu.id} className={`hover:bg-gray-50 ${isYaklasan ? 'bg-yellow-50' : ''} ${isGecmis ? 'opacity-75' : ''}`}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {isYaklasan && (
+                                <div className="flex items-center gap-1">
+                                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                                  <span className="text-xs text-yellow-600 font-medium">
+                                    {minutesDiff} dk
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {randevu.baslik}
+                                </div>
+                                {randevu.aciklama && (
+                                  <div className="text-sm text-gray-500 truncate max-w-xs">
+                                    {randevu.aciklama}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            {randevu.aciklama && (
-                              <div className="text-sm text-gray-500 truncate max-w-xs">
-                                {randevu.aciklama}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {randevu.danisan ? (
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {randevu.danisan.ad} {randevu.danisan.soyad}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {randevu.danisan.email}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-500">Genel Randevu</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {new Date(randevu.tarih).toLocaleDateString('tr-TR')}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {new Date(randevu.tarih).toLocaleTimeString('tr-TR', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                            {isGecmis && (
+                              <div className="text-xs text-red-500 mt-1">
+                                Geçmiş
                               </div>
                             )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {randevu.danisan ? (
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {randevu.danisan.ad} {randevu.danisan.soyad}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {randevu.danisan.email}
-                              </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRandevuDurumBadge(randevu.durum)}`}>
+                              {getRandevuDurumText(randevu.durum)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => openEditRandevu(randevu)}
+                                className="text-blue-600 hover:text-blue-900"
+                                title="Düzenle"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteRandevu(randevu.id)}
+                                className="text-red-600 hover:text-red-900"
+                                title="Sil"
+                              >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
                             </div>
-                          ) : (
-                            <span className="text-sm text-gray-500">Genel Randevu</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {new Date(randevu.tarih).toLocaleDateString('tr-TR')}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {new Date(randevu.tarih).toLocaleTimeString('tr-TR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRandevuDurumBadge(randevu.durum)}`}>
-                            {getRandevuDurumText(randevu.durum)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => openEditRandevu(randevu)}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteRandevu(randevu.id)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                         <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        <p>Henüz randevu bulunmuyor.</p>
-                        <p className="text-sm">Yeni randevu eklemek için yukarıdaki butonu kullanın.</p>
+                        <p>
+                          {randevuFilter === 'hepsi' ? 'Henüz randevu bulunmuyor.' : 
+                           randevuFilter === 'bugun' ? 'Bugün randevu bulunmuyor.' :
+                           randevuFilter === 'bu_hafta' ? 'Bu hafta randevu bulunmuyor.' :
+                           'Yaklaşan randevu bulunmuyor.'
+                          }
+                        </p>
+                        <p className="text-sm">
+                          {randevuFilter === 'hepsi' ? 'Yeni randevu eklemek için yukarıdaki butonu kullanın.' :
+                           'Farklı bir filtre seçin veya yeni randevu ekleyin.'
+                          }
+                        </p>
                       </td>
                     </tr>
                   )}

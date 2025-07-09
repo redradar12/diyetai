@@ -20,6 +20,7 @@ model Diyetisyen {
   telefon     String?
   uzmanlik    String?
   deneyim     Int?
+  isAdmin     Boolean  @default(false)
   olusturmaTarihi DateTime @default(now())
   guncellemeTarihi DateTime @updatedAt
 
