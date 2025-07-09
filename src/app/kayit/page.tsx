@@ -16,7 +16,9 @@ export default function KayitPage() {
     kosullar: false
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.sifre !== formData.sifreTekrar) {
@@ -29,8 +31,53 @@ export default function KayitPage() {
       return;
     }
 
-    // Kayıt işlemi burada yapılacak
-    console.log('Kayıt yapılıyor:', formData);
+    if (formData.sifre.length < 6) {
+      alert('Şifre en az 6 karakter olmalıdır!');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ad: formData.ad,
+          soyad: formData.soyad,
+          email: formData.email,
+          telefon: formData.telefon,
+          sifre: formData.sifre
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Hesap başarıyla oluşturuldu! Giriş sayfasına yönlendiriliyorsunuz.');
+        // Form temizle
+        setFormData({
+          ad: '',
+          soyad: '',
+          email: '',
+          telefon: '',
+          sifre: '',
+          sifreTekrar: '',
+          kosullar: false
+        });
+        // Giriş sayfasına yönlendir
+        window.location.href = '/giris';
+      } else {
+        alert(data.error || 'Hesap oluşturulurken bir hata oluştu!');
+      }
+    } catch (error) {
+      console.error('Kayıt hatası:', error);
+      alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -191,9 +238,10 @@ export default function KayitPage() {
 
             <button
               type="submit"
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+              disabled={loading}
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Hesap Oluştur
+              {loading ? 'Hesap Oluşturuluyor...' : 'Hesap Oluştur'}
             </button>
           </form>
 
