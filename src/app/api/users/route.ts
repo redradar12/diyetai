@@ -144,8 +144,19 @@ export async function PUT(request: NextRequest) {
       where: { id: userId },
       data: { 
         abonelik: {
-          update: {
-            plan: abonelik
+          upsert: {
+            create: {
+              plan: abonelik,
+              baslangic: new Date(),
+              aktif: true,
+              maksDanisan: abonelik === 'premium' ? -1 : 3,
+              maksMenu: abonelik === 'premium' ? -1 : 5
+            },
+            update: {
+              plan: abonelik,
+              maksDanisan: abonelik === 'premium' ? -1 : 3,
+              maksMenu: abonelik === 'premium' ? -1 : 5
+            }
           }
         }
       },
