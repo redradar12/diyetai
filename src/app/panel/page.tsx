@@ -2460,7 +2460,7 @@ export default function PanelPage() {
                                     <button
                                       onClick={() => upgradePlan(kullanici.id, 'premium')}
                                       className="p-1 text-green-600 hover:text-green-800 transition-colors"
-                                      title="Premium'a Yükselt"
+                                      title="Premium&apos;a Yükselt"
                                     >
                                       <PlusCircle className="h-4 w-4" />
                                     </button>
@@ -2557,7 +2557,7 @@ export default function PanelPage() {
                   }}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                 >
-                  Premium'a Yükselt
+                  Premium&apos;a Yükselt
                 </button>
               )}
             </div>
