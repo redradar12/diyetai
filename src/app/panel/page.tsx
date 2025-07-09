@@ -13,6 +13,27 @@ interface User {
   deneyim?: number;
 }
 
+interface PlanBilgisi {
+  plan: 'ucretsiz' | 'temel' | 'premium';
+  limitler: {
+    maksMenu: number;
+    maksDanisan: number;
+    icerikUreticisi: boolean;
+    aiMenuSiniri: number;
+  };
+  kullanim: {
+    menu: { mevcut: number; limit: number; oran: number };
+    danisan: { mevcut: number; limit: number; oran: number };
+    icerikUreticisi: boolean;
+  };
+  abonelik: {
+    id: string;
+    baslangic: string;
+    bitis: string | null;
+    aktif: boolean;
+  } | null;
+}
+
 interface Danisan {
   id: string;
   ad: string;
@@ -87,6 +108,7 @@ interface Randevu {
 export default function PanelPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [planBilgisi, setPlanBilgisi] = useState<PlanBilgisi | null>(null);
   const [danisanlar, setDanisanlar] = useState<Danisan[]>([]);
   const [activeTab, setActiveTab] = useState('genel');
   const [showNewDanisanModal, setShowNewDanisanModal] = useState(false);
@@ -202,6 +224,7 @@ export default function PanelPage() {
 
   useEffect(() => {
     fetchUserData();
+    fetchPlanBilgisi();
     fetchDanisanlar();
     fetchRandevular();
   }, []);
@@ -231,6 +254,26 @@ export default function PanelPage() {
       window.location.href = '/giris';
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPlanBilgisi = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('/api/plan', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPlanBilgisi(data);
+      }
+    } catch (error) {
+      console.error('Plan bilgileri alınamadı:', error);
     }
   };
 
@@ -313,9 +356,16 @@ export default function PanelPage() {
           notlar: ''
         });
         fetchDanisanlar();
+        // Plan bilgilerini güncelle
+        fetchPlanBilgisi();
         alert('Danışan başarıyla eklendi!');
       } else {
-        alert('Danışan eklenirken hata oluştu!');
+        const errorData = await response.json();
+        if (errorData.planBilgisi?.planYukseltGerekli) {
+          alert(`Plan Sınırı: ${errorData.error}\n\nPremium plana geçerek sınırsız danışan ekleyebilirsiniz.`);
+        } else {
+          alert(errorData.error || 'Danışan eklenirken hata oluştu!');
+        }
       }
     } catch (error) {
       console.error('Danışan eklenirken hata:', error);
@@ -449,6 +499,8 @@ export default function PanelPage() {
         const data = await response.json();
         setGeneratedMenu(data.menu);
         alert('AI menü başarıyla oluşturuldu!');
+        // Plan bilgilerini güncelle
+        fetchPlanBilgisi();
         // Form temizle
         setAiMenuForm({
           danisanId: '',
@@ -458,7 +510,12 @@ export default function PanelPage() {
           ozelNotlar: ''
         });
       } else {
-        alert('AI menü oluşturulurken hata oluştu!');
+        const errorData = await response.json();
+        if (errorData.planBilgisi?.planYukseltGerekli) {
+          alert(`Plan Sınırı: ${errorData.error}\n\nPremium plana geçerek sınırsız AI menü oluşturabilirsiniz.`);
+        } else {
+          alert(errorData.error || 'AI menü oluşturulurken hata oluştu!');
+        }
       }
     } catch (error) {
       console.error('AI menü hatası:', error);
@@ -573,7 +630,12 @@ export default function PanelPage() {
         setGeneratedContent(data.content);
         alert('AI içerik başarıyla oluşturuldu!');
       } else {
-        alert('İçerik oluşturulurken hata oluştu!');
+        const errorData = await response.json();
+        if (errorData.planBilgisi?.planYukseltGerekli) {
+          alert(`Plan Sınırı: ${errorData.error}\n\nPremium plana geçerek içerik üreticisi özelliğini kullanabilirsiniz.`);
+        } else {
+          alert(errorData.error || 'İçerik oluşturulurken hata oluştu!');
+        }
       }
     } catch (error) {
       console.error('AI içerik hatası:', error);
@@ -857,6 +919,61 @@ export default function PanelPage() {
         {/* Tab Content */}
         {activeTab === 'genel' && (
           <div className="space-y-6">
+            {/* Plan Kartı */}
+            {planBilgisi && (
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      {planBilgisi.plan === 'ucretsiz' ? 'Ücretsiz Plan' :
+                       planBilgisi.plan === 'temel' ? 'Temel Plan' : 'Premium Plan'}
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm opacity-90">Danışan:</span>
+                        <span className="font-medium">
+                          {planBilgisi.kullanim.danisan.mevcut}/{planBilgisi.limitler.maksDanisan === -1 ? '∞' : planBilgisi.limitler.maksDanisan}
+                        </span>
+                        {planBilgisi.limitler.maksDanisan !== -1 && (
+                          <div className="flex-1 bg-white/20 rounded-full h-2 max-w-[100px]">
+                            <div 
+                              className="bg-white rounded-full h-2 transition-all duration-300"
+                              style={{ width: `${Math.min(planBilgisi.kullanim.danisan.oran, 100)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm opacity-90">AI Menü:</span>
+                        <span className="font-medium">
+                          {planBilgisi.kullanim.menu.mevcut}/{planBilgisi.limitler.maksMenu === -1 ? '∞' : planBilgisi.limitler.maksMenu}
+                        </span>
+                        {planBilgisi.limitler.maksMenu !== -1 && (
+                          <div className="flex-1 bg-white/20 rounded-full h-2 max-w-[100px]">
+                            <div 
+                              className="bg-white rounded-full h-2 transition-all duration-300"
+                              style={{ width: `${Math.min(planBilgisi.kullanim.menu.oran, 100)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm opacity-90">İçerik Üreticisi:</span>
+                        <span className="font-medium">
+                          {planBilgisi.kullanim.icerikUreticisi ? '✅ Aktif' : '❌ Deaktif'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {planBilgisi.plan === 'ucretsiz' && (
+                    <button className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium text-sm hover:bg-gray-100 transition-colors">
+                      Premium'a Geç
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-white rounded-lg shadow p-6">

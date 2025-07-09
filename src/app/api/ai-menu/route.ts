@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { menuOlusturabilirMi } from '@/lib/abonelik';
 import jwt from 'jsonwebtoken';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
@@ -19,8 +20,20 @@ export async function POST(request: NextRequest) {
     }
 
     const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
-    // decoded kullanıldığı için yorum satırına alındı
     console.log('User authenticated:', decoded.id);
+    
+    // Plan kontrolü - AI menü oluşturabilir mi?
+    const menuDurumu = await menuOlusturabilirMi(decoded.id);
+    if (!menuDurumu.olusturabilir) {
+      return NextResponse.json({ 
+        error: `AI menü limiti aşıldı. ${menuDurumu.limit === -1 ? 'Sınırsız' : menuDurumu.limit} menü hakkınız var, şu anda ${menuDurumu.mevcut} menü oluşturmuşsunuz. Premium plana geçerek sınırsız menü oluşturabilirsiniz.`,
+        planBilgisi: {
+          limit: menuDurumu.limit,
+          mevcut: menuDurumu.mevcut,
+          planYukseltGerekli: true
+        }
+      }, { status: 403 });
+    }
     
     // Request body'yi al
     const body = await request.json();

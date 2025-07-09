@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { icerikUreticisiKullanabilirMi } from '@/lib/abonelik';
 import jwt from 'jsonwebtoken';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
@@ -20,6 +21,19 @@ export async function POST(request: NextRequest) {
 
     const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
     console.log('User authenticated:', decoded.id);
+    
+    // Plan kontrolü - İçerik üreticisi kullanabilir mi?
+    const icerikErisimi = await icerikUreticisiKullanabilirMi(decoded.id);
+    if (!icerikErisimi) {
+      return NextResponse.json({ 
+        error: 'İçerik üreticisi özelliği ücretsiz planda mevcut değildir. Premium plana geçerek bu özelliği kullanabilirsiniz.',
+        planBilgisi: {
+          ozellik: 'İçerik Üreticisi',
+          planYukseltGerekli: true,
+          gereklePlan: 'Premium'
+        }
+      }, { status: 403 });
+    }
     
     // Request body'yi al
     const body = await request.json();

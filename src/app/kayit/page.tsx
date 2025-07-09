@@ -20,6 +20,15 @@ export default function KayitPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('Form submit başladı', formData);
+    
+    // Loading durumunu kontrol et - double submit'i engelle
+    if (loading) {
+      console.log('Zaten loading durumunda, submit engellendi');
+      return;
+    }
     
     if (formData.sifre !== formData.sifreTekrar) {
       alert('Şifreler eşleşmiyor!');
@@ -36,9 +45,11 @@ export default function KayitPage() {
       return;
     }
 
+    console.log('Validation geçti, API call başlıyor...');
     setLoading(true);
     
     try {
+      console.log('Fetch API call yapılıyor...');
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -53,7 +64,9 @@ export default function KayitPage() {
         }),
       });
 
+      console.log('Response alındı:', response.status, response.statusText);
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (response.ok) {
         alert('Hesap başarıyla oluşturuldu! Giriş sayfasına yönlendiriliyorsunuz.');
@@ -76,6 +89,7 @@ export default function KayitPage() {
       console.error('Kayıt hatası:', error);
       alert('Bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
+      console.log('API call tamamlandı, loading false yapılıyor');
       setLoading(false);
     }
   };
@@ -93,7 +107,7 @@ export default function KayitPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" action="#">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="ad" className="block text-sm font-medium text-gray-700 mb-1">
@@ -225,13 +239,25 @@ export default function KayitPage() {
                 onChange={(e) => setFormData({...formData, kosullar: e.target.checked})}
               />
               <label htmlFor="kosullar" className="ml-2 block text-sm text-gray-700">
-                <Link href="/kullanim-sartlari" className="text-green-600 hover:text-green-500">
+                <span 
+                  className="text-green-600 hover:text-green-500 cursor-pointer underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open('/kullanim-sartlari', '_blank');
+                  }}
+                >
                   Kullanım şartları
-                </Link>
+                </span>
                 nı ve{' '}
-                <Link href="/gizlilik-politikasi" className="text-green-600 hover:text-green-500">
+                <span 
+                  className="text-green-600 hover:text-green-500 cursor-pointer underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open('/gizlilik-politikasi', '_blank');
+                  }}
+                >
                   gizlilik politikası
-                </Link>
+                </span>
                 nı kabul ediyorum.
               </label>
             </div>
@@ -239,6 +265,13 @@ export default function KayitPage() {
             <button
               type="submit"
               disabled={loading}
+              onClick={(e) => {
+                console.log('Buton click olayı tetiklendi');
+                if (loading) {
+                  e.preventDefault();
+                  console.log('Loading durumunda, click engellendi');
+                }
+              }}
               className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Hesap Oluşturuluyor...' : 'Hesap Oluştur'}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { danisanEkleyebilirMi } from '@/lib/abonelik';
 import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
@@ -71,6 +72,19 @@ export async function POST(request: NextRequest) {
 
     const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as JwtPayload;
     const diyetisyenId = decoded.id; // userId yerine id kullan
+
+    // Plan kontrolü - Danışan ekleyebilir mi?
+    const danisanDurumu = await danisanEkleyebilirMi(diyetisyenId);
+    if (!danisanDurumu.ekleyebilir) {
+      return NextResponse.json({ 
+        error: `Danışan limiti aşıldı. ${danisanDurumu.limit === -1 ? 'Sınırsız' : danisanDurumu.limit} danışan hakkınız var, şu anda ${danisanDurumu.mevcut} danışanınız bulunmaktadır. Premium plana geçerek sınırsız danışan ekleyebilirsiniz.`,
+        planBilgisi: {
+          limit: danisanDurumu.limit,
+          mevcut: danisanDurumu.mevcut,
+          planYukseltGerekli: true
+        }
+      }, { status: 403 });
+    }
 
     // Request body'yi al
     const body = await request.json();
