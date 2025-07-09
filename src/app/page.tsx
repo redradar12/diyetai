@@ -32,16 +32,6 @@ export default function Home() {
                 Giriş Yapın
               </Link>
             </div>
-            
-            {/* Test Hesabı Linki */}
-            <div className="mt-4 text-center">
-              <Link 
-                href="/test"
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-              >
-                🧪 Test Hesabı ile Deneyin
-              </Link>
-            </div>
           </div>
         </div>
       </div>
