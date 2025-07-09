@@ -12,6 +12,16 @@ interface User {
   uzmanlik?: string;
   deneyim?: number;
   isAdmin?: boolean;
+  abonelik?: {
+    plan: string;
+    aktif: boolean;
+  };
+  _count?: {
+    danisanlar: number;
+    menuler: number;
+    randevular: number;
+    icerikler: number;
+  };
 }
 
 interface PlanBilgisi {
@@ -247,9 +257,32 @@ export default function PanelPage() {
     try {
       console.log('Admin kullanıcıları yükleniyor...');
       
-      // Geçici olarak admin API'ları olmadığı için boş array döndür
-      setTumKullanicilar([]);
-      console.log('Admin API geçici olarak devre dışı');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('Token bulunamadı');
+        return;
+      }
+
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API response:', data);
+
+      if (data.success && data.users) {
+        setTumKullanicilar(data.users);
+        console.log('Kullanıcılar yüklendi:', data.users.length);
+      } else {
+        console.error('Veri formatı hatalı:', data);
+        setTumKullanicilar([]);
+      }
       
     } catch (error) {
       console.error('Kullanıcı listeleme hatası:', error);
@@ -258,13 +291,86 @@ export default function PanelPage() {
   };
 
   // Kullanıcı planını yükselt
-  const upgradePlan = async () => {
-    alert('Admin API geçici olarak devre dışı');
+  const upgradePlan = async (userId: string, newPlan: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Oturum süresi dolmuş, lütfen tekrar giriş yapın.');
+        return;
+      }
+
+      const response = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          abonelik: newPlan,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Kullanıcı planı başarıyla güncellendi!');
+        fetchTumKullanicilar(); // Listeyi yenile
+      } else {
+        alert('Plan güncellenirken hata oluştu: ' + data.error);
+      }
+      
+    } catch (error) {
+      console.error('Plan upgrade hatası:', error);
+      alert('Plan güncellenirken hata oluştu');
+    }
   };
 
   // Kullanıcıyı sil
-  const deleteUser = async () => {
-    alert('Admin API geçici olarak devre dışı');
+  const deleteUser = async (userId: string) => {
+    if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Oturum süresi dolmuş, lütfen tekrar giriş yapın.');
+        return;
+      }
+
+      const response = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Kullanıcı başarıyla silindi!');
+        fetchTumKullanicilar(); // Listeyi yenile
+      } else {
+        alert('Kullanıcı silinirken hata oluştu: ' + data.error);
+      }
+      
+    } catch (error) {
+      console.error('Kullanıcı silme hatası:', error);
+      alert('Kullanıcı silinirken hata oluştu');
+    }
   };
 
   // Randevu alarm kontrolü
@@ -2326,6 +2432,7 @@ export default function PanelPage() {
                           <th className="text-left py-2 px-4">Ad Soyad</th>
                           <th className="text-left py-2 px-4">Email</th>
                           <th className="text-left py-2 px-4">Telefon</th>
+                          <th className="text-left py-2 px-4">Plan</th>
                           <th className="text-left py-2 px-4">Rol</th>
                           <th className="text-left py-2 px-4">Kayıt Tarihi</th>
                           <th className="text-left py-2 px-4">İşlemler</th>
@@ -2341,6 +2448,18 @@ export default function PanelPage() {
                             </td>
                             <td className="py-3 px-4 text-gray-600">{kullanici.email}</td>
                             <td className="py-3 px-4 text-gray-600">{kullanici.tel || 'Belirtilmemiş'}</td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                kullanici.abonelik?.plan === 'premium' 
+                                  ? 'bg-yellow-100 text-yellow-800' 
+                                  : kullanici.abonelik?.plan === 'temel'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {kullanici.abonelik?.plan === 'premium' ? 'Premium' : 
+                                 kullanici.abonelik?.plan === 'temel' ? 'Temel' : 'Ücretsiz'}
+                              </span>
+                            </td>
                             <td className="py-3 px-4">
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                                 kullanici.isAdmin === true 
@@ -2368,14 +2487,14 @@ export default function PanelPage() {
                                 {kullanici.isAdmin !== true && (
                                   <>
                                     <button
-                                      onClick={() => upgradePlan()}
+                                      onClick={() => upgradePlan(kullanici.id, 'premium')}
                                       className="p-1 text-green-600 hover:text-green-800 transition-colors"
                                       title="Premium&apos;a Yükselt"
                                     >
                                       <PlusCircle className="h-4 w-4" />
                                     </button>
                                     <button
-                                      onClick={() => deleteUser()}
+                                      onClick={() => deleteUser(kullanici.id)}
                                       className="p-1 text-red-600 hover:text-red-800 transition-colors"
                                       title="Kullanıcıyı Sil"
                                     >
@@ -2462,7 +2581,7 @@ export default function PanelPage() {
               {selectedUser.isAdmin !== true && (
                 <button
                   onClick={() => {
-                    upgradePlan();
+                    upgradePlan(selectedUser.id, 'premium');
                     setShowUserDetailModal(false);
                   }}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
